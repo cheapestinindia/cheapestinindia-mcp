@@ -1,0 +1,2732 @@
+{
+  "author": "CheapestInIndia",
+  "authorUrl": "https://www.cheapestinindia.com",
+  "category": "lifestyle",
+  "cloudEndpoint": "https://mcp.cheapestinindia.com/mcp",
+  "description": "Shopping search engine and price tracker for India: search 50M+ products, track price drops, check price history and price trends, and compare prices across 100+ stores like Amazon, Flipkart, Croma.",
+  "homepage": "https://mcp.cheapestinindia.com/",
+  "icon": "🛒",
+  "identifier": "cheapestinindia-mcp",
+  "name": "CheapestInIndia",
+  "prompts": [],
+  "resources": [
+    {
+      "name": "CheapestInIndia product results",
+      "uri": "ui://cheapestinindia/products/v6.html",
+      "description": "Interactive product cards, price-history chart and buy links",
+      "mimeType": "text/html;profile=mcp-app"
+    },
+    {
+      "name": "CheapestInIndia product results (earlier version URIs)",
+      "uriTemplate": "ui://cheapestinindia/products/{version}.html",
+      "mimeType": "text/html;profile=mcp-app"
+    }
+  ],
+  "tags": [
+    "shopping",
+    "price-tracker",
+    "price-history",
+    "price-comparison",
+    "india",
+    "amazon",
+    "flipkart"
+  ],
+  "tools": [
+    {
+      "name": "search_products",
+      "title": "Search products",
+      "description": "Search CheapestInIndia for products sold in India, with live prices from Amazon, Flipkart, Croma, Reliance Digital, Myntra, Nykaa and other Indian retailers. Use it for any shopping question about products in India: prices, where to buy, options under a budget. For 'is ₹X a good price' or price history of a named product, call get_price_history with `query` directly. Results are ordered category-first: real products before accessories, stores mixed. Put the brand in the query ('samsung 55 inch tv'). Returns products (price, MRP, discount, store, image, buy link, price-history page) and facets (stores, categories, price range). The results are shown to the user as product cards automatically, with a link to all results on CheapestInIndia. Next steps: get_price_history to judge a price, compare_products to compare 2–4 items; render_product_results only to show a hand-picked subset.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200,
+            "description": "What the user is shopping for, e.g. 'jbl flip 6'"
+          },
+          "stores": {
+            "description": "Only these retailers, e.g. ['amazon.in', 'flipkart.com']",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 60
+            }
+          },
+          "category_ids": {
+            "description": "Category group ids from browse_categories or a previous search's facets",
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{24}$"
+            }
+          },
+          "min_price": {
+            "description": "Minimum price in INR",
+            "type": "number",
+            "minimum": 0
+          },
+          "max_price": {
+            "description": "Maximum price in INR",
+            "type": "number",
+            "minimum": 0
+          },
+          "sort": {
+            "description": "Default relevance. price_asc = cheapest first",
+            "type": "string",
+            "enum": [
+              "relevance",
+              "price_asc",
+              "price_desc"
+            ]
+          },
+          "page": {
+            "description": "Page number (default 1)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "per_page": {
+            "description": "Results per page (default 10, max 20)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "correctedQuery": {
+            "type": "string"
+          },
+          "page": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "facets": {
+            "type": "object",
+            "properties": {
+              "stores": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "categories": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "priceRange": {
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "type": "number"
+                  },
+                  "max": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "stores",
+              "categories"
+            ],
+            "additionalProperties": false
+          },
+          "searchPageUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "page",
+          "total",
+          "hasMore",
+          "products",
+          "facets",
+          "searchPageUrl"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "openai/toolInvocation/invoking": "Searching CheapestInIndia…",
+        "openai/toolInvocation/invoked": "Search complete.",
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    },
+    {
+      "name": "get_product",
+      "title": "Get product details",
+      "description": "Full details for one CheapestInIndia product: current price, MRP, store, retailer rating, a price-history summary (lowest/highest ever, verdict), other variants at the same store, and similar products elsewhere. Use the id from search_products.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{24}$",
+            "description": "CheapestInIndia product id (from search_products, get_product or lookup_product_by_url)"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "CheapestInIndia product id — pass through unchanged"
+              },
+              "title": {
+                "type": "string"
+              },
+              "brand": {
+                "type": "string"
+              },
+              "price": {
+                "type": "number",
+                "description": "Current price in INR"
+              },
+              "mrp": {
+                "description": "Maximum retail price in INR, when known",
+                "type": "number"
+              },
+              "currency": {
+                "type": "string",
+                "const": "INR"
+              },
+              "discountPercent": {
+                "description": "Discount from MRP, %",
+                "type": "number"
+              },
+              "store": {
+                "type": "string",
+                "description": "Retailer, e.g. amazon.in, flipkart.com"
+              },
+              "imageUrl": {
+                "type": "string"
+              },
+              "productUrl": {
+                "type": "string",
+                "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+              },
+              "productPageUrl": {
+                "type": "string",
+                "description": "CheapestInIndia price-history page — use for citations"
+              },
+              "outOfStock": {
+                "type": "boolean"
+              },
+              "priceChange": {
+                "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                "type": "number"
+              },
+              "priceChangeAt": {
+                "description": "When that price change happened (ISO 8601)",
+                "type": "string"
+              },
+              "lowestPrice": {
+                "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                "type": "number"
+              },
+              "atLowestPrice": {
+                "description": "True when the current price is the lowest ever recorded",
+                "type": "boolean"
+              },
+              "rating": {
+                "description": "Rating at the retailer (0–5)",
+                "type": "number"
+              },
+              "reviewCount": {
+                "description": "Number of reviews at the retailer",
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "price",
+              "currency",
+              "store",
+              "productUrl",
+              "productPageUrl",
+              "outOfStock"
+            ],
+            "additionalProperties": false
+          },
+          "history": {
+            "type": "object",
+            "properties": {
+              "currentPrice": {
+                "type": "number"
+              },
+              "lowestEver": {
+                "type": "object",
+                "properties": {
+                  "price": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "price"
+                ],
+                "additionalProperties": false
+              },
+              "highestEver": {
+                "type": "object",
+                "properties": {
+                  "price": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "price"
+                ],
+                "additionalProperties": false
+              },
+              "lowestLast7Days": {
+                "type": "number"
+              },
+              "lowestLast30Days": {
+                "type": "number"
+              },
+              "lowestLast90Days": {
+                "type": "number"
+              },
+              "aboveLowestEverPercent": {
+                "type": "number"
+              },
+              "belowHighestEverPercent": {
+                "type": "number"
+              },
+              "lastChange": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "percent": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              "priceChangesLast30Days": {
+                "type": "number"
+              },
+              "priceChangesLifetime": {
+                "type": "number"
+              },
+              "trackedSince": {
+                "type": "string"
+              },
+              "lastChecked": {
+                "type": "string"
+              },
+              "dataPoints": {
+                "type": "number",
+                "description": "Number of recorded price changes"
+              },
+              "verdict": {
+                "type": "string",
+                "enum": [
+                  "lowest_ever",
+                  "near_lowest",
+                  "lowest_in_90_days",
+                  "lowest_in_30_days",
+                  "above_recent_lows",
+                  "highest_ever",
+                  "not_enough_data"
+                ],
+                "description": "Factual position of the current price in its history"
+              },
+              "verdictText": {
+                "type": "string"
+              },
+              "series": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "price"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Sampled price points, oldest first"
+              }
+            },
+            "required": [
+              "currentPrice",
+              "dataPoints",
+              "verdict",
+              "verdictText",
+              "series"
+            ],
+            "additionalProperties": false
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Other sizes/colours of the same product at the same store"
+          },
+          "similar": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Similar products (other brands or stores)"
+          }
+        },
+        "required": [
+          "product",
+          "variants",
+          "similar"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    },
+    {
+      "name": "lookup_product_by_url",
+      "title": "Look up a product link",
+      "description": "Find a product on CheapestInIndia from a retailer link the user pasted (Amazon, Flipkart, Myntra, Ajio, Croma, …) and return its tracked price, price-history summary, variants and similar products. Only products CheapestInIndia already tracks can be found.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000,
+            "description": "Retailer product URL, e.g. https://www.amazon.in/dp/B0C…"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "CheapestInIndia product id — pass through unchanged"
+              },
+              "title": {
+                "type": "string"
+              },
+              "brand": {
+                "type": "string"
+              },
+              "price": {
+                "type": "number",
+                "description": "Current price in INR"
+              },
+              "mrp": {
+                "description": "Maximum retail price in INR, when known",
+                "type": "number"
+              },
+              "currency": {
+                "type": "string",
+                "const": "INR"
+              },
+              "discountPercent": {
+                "description": "Discount from MRP, %",
+                "type": "number"
+              },
+              "store": {
+                "type": "string",
+                "description": "Retailer, e.g. amazon.in, flipkart.com"
+              },
+              "imageUrl": {
+                "type": "string"
+              },
+              "productUrl": {
+                "type": "string",
+                "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+              },
+              "productPageUrl": {
+                "type": "string",
+                "description": "CheapestInIndia price-history page — use for citations"
+              },
+              "outOfStock": {
+                "type": "boolean"
+              },
+              "priceChange": {
+                "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                "type": "number"
+              },
+              "priceChangeAt": {
+                "description": "When that price change happened (ISO 8601)",
+                "type": "string"
+              },
+              "lowestPrice": {
+                "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                "type": "number"
+              },
+              "atLowestPrice": {
+                "description": "True when the current price is the lowest ever recorded",
+                "type": "boolean"
+              },
+              "rating": {
+                "description": "Rating at the retailer (0–5)",
+                "type": "number"
+              },
+              "reviewCount": {
+                "description": "Number of reviews at the retailer",
+                "type": "number"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "price",
+              "currency",
+              "store",
+              "productUrl",
+              "productPageUrl",
+              "outOfStock"
+            ],
+            "additionalProperties": false
+          },
+          "history": {
+            "type": "object",
+            "properties": {
+              "currentPrice": {
+                "type": "number"
+              },
+              "lowestEver": {
+                "type": "object",
+                "properties": {
+                  "price": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "price"
+                ],
+                "additionalProperties": false
+              },
+              "highestEver": {
+                "type": "object",
+                "properties": {
+                  "price": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "price"
+                ],
+                "additionalProperties": false
+              },
+              "lowestLast7Days": {
+                "type": "number"
+              },
+              "lowestLast30Days": {
+                "type": "number"
+              },
+              "lowestLast90Days": {
+                "type": "number"
+              },
+              "aboveLowestEverPercent": {
+                "type": "number"
+              },
+              "belowHighestEverPercent": {
+                "type": "number"
+              },
+              "lastChange": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "percent": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              "priceChangesLast30Days": {
+                "type": "number"
+              },
+              "priceChangesLifetime": {
+                "type": "number"
+              },
+              "trackedSince": {
+                "type": "string"
+              },
+              "lastChecked": {
+                "type": "string"
+              },
+              "dataPoints": {
+                "type": "number",
+                "description": "Number of recorded price changes"
+              },
+              "verdict": {
+                "type": "string",
+                "enum": [
+                  "lowest_ever",
+                  "near_lowest",
+                  "lowest_in_90_days",
+                  "lowest_in_30_days",
+                  "above_recent_lows",
+                  "highest_ever",
+                  "not_enough_data"
+                ],
+                "description": "Factual position of the current price in its history"
+              },
+              "verdictText": {
+                "type": "string"
+              },
+              "series": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "price"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Sampled price points, oldest first"
+              }
+            },
+            "required": [
+              "currentPrice",
+              "dataPoints",
+              "verdict",
+              "verdictText",
+              "series"
+            ],
+            "additionalProperties": false
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Other sizes/colours of the same product at the same store"
+          },
+          "similar": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Similar products (other brands or stores)"
+          }
+        },
+        "required": [
+          "product",
+          "variants",
+          "similar"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    },
+    {
+      "name": "browse_categories",
+      "title": "Browse categories",
+      "description": "List CheapestInIndia product category groups (id + name). Use an id as category_ids in search_products, or as category_id in top_price_drops. Optionally filter by a name fragment.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name_contains": {
+            "description": "Case-insensitive name filter, e.g. 'phone'",
+            "type": "string",
+            "maxLength": 60
+          },
+          "top_only": {
+            "description": "Only top-level groups (default false)",
+            "type": "boolean"
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "top": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "top"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "categories"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_price_history",
+      "title": "Price history & price check",
+      "description": "Price history and price check for a product sold in India, from CheapestInIndia's price tracking: current price, lowest and highest price ever (with dates), lowest in the last 7/30/90 days, how often the price changes, a price chart, and a factual verdict on where today's price sits. Use it for 'is ₹X a good price for <product>?', 'price history of <product>', 'lowest price of <product>', 'was it cheaper before?' and 'should I buy now or has it been lower?'. Pass the product name as `query` (e.g. 'JBL Flip 6') — the best-matching listing is used and other listings are returned so you can switch — or an exact `id` from another tool. Shown to the user as a price-history card with a chart. The verdict describes the past only — never present it as a forecast.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "description": "Product name, brand + model if known, e.g. 'JBL Flip 6' or 'Samsung 55 inch Crystal 4K TV'",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{24}$",
+            "description": "CheapestInIndia product id (from search_products, get_product or lookup_product_by_url)"
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "store": {
+                "type": "string"
+              },
+              "imageUrl": {
+                "type": "string"
+              },
+              "productPageUrl": {
+                "type": "string"
+              },
+              "productUrl": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "store",
+              "productPageUrl"
+            ],
+            "additionalProperties": false
+          },
+          "history": {
+            "type": "object",
+            "properties": {
+              "currentPrice": {
+                "type": "number"
+              },
+              "lowestEver": {
+                "type": "object",
+                "properties": {
+                  "price": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "price"
+                ],
+                "additionalProperties": false
+              },
+              "highestEver": {
+                "type": "object",
+                "properties": {
+                  "price": {
+                    "type": "number"
+                  },
+                  "date": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "price"
+                ],
+                "additionalProperties": false
+              },
+              "lowestLast7Days": {
+                "type": "number"
+              },
+              "lowestLast30Days": {
+                "type": "number"
+              },
+              "lowestLast90Days": {
+                "type": "number"
+              },
+              "aboveLowestEverPercent": {
+                "type": "number"
+              },
+              "belowHighestEverPercent": {
+                "type": "number"
+              },
+              "lastChange": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "percent": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "amount"
+                ],
+                "additionalProperties": false
+              },
+              "priceChangesLast30Days": {
+                "type": "number"
+              },
+              "priceChangesLifetime": {
+                "type": "number"
+              },
+              "trackedSince": {
+                "type": "string"
+              },
+              "lastChecked": {
+                "type": "string"
+              },
+              "dataPoints": {
+                "type": "number",
+                "description": "Number of recorded price changes"
+              },
+              "verdict": {
+                "type": "string",
+                "enum": [
+                  "lowest_ever",
+                  "near_lowest",
+                  "lowest_in_90_days",
+                  "lowest_in_30_days",
+                  "above_recent_lows",
+                  "highest_ever",
+                  "not_enough_data"
+                ],
+                "description": "Factual position of the current price in its history"
+              },
+              "verdictText": {
+                "type": "string"
+              },
+              "series": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "price"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Sampled price points, oldest first"
+              }
+            },
+            "required": [
+              "currentPrice",
+              "dataPoints",
+              "verdict",
+              "verdictText",
+              "series"
+            ],
+            "additionalProperties": false
+          },
+          "matchedQuery": {
+            "description": "The query used to pick this listing",
+            "type": "string"
+          },
+          "otherListings": {
+            "description": "Other listings for the query (other stores, sizes or models) — pass one's id to switch",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "product",
+          "history"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    },
+    {
+      "name": "top_price_drops",
+      "title": "Biggest recent price drops",
+      "description": "Products whose price dropped the most in the last N hours across Indian retailers. Use for 'deals today', 'what got cheaper' or 'price drops on phones'. For a product type, pass `category` as a plain name (e.g. 'air conditioners', 'mobile phones', 'laptops') in the same call — no need to look up an id first. With a category, products are ranked by the rupee drop; without one, by the percentage drop. Each product's priceChange is the drop in INR (negative). Shown to the user as product cards.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "hours": {
+            "description": "Look-back window in hours (default 24)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 72
+          },
+          "category": {
+            "description": "Category name, e.g. 'air conditioners' or 'mobile phones'",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "category_id": {
+            "description": "Category group id from browse_categories (alternative to category)",
+            "type": "string",
+            "pattern": "^[a-f0-9]{24}$"
+          },
+          "min_price": {
+            "description": "Ignore products cheaper than this (INR)",
+            "type": "number",
+            "minimum": 0
+          },
+          "limit": {
+            "description": "Max products (default 15)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "hours": {
+            "type": "number"
+          },
+          "category": {
+            "description": "Category the drops are limited to",
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "hours",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    },
+    {
+      "name": "brand_price_drops",
+      "title": "Brand price drops",
+      "description": "A brand's products whose prices dropped recently (up to the last 7 days) across Indian online stores, biggest drop first. Use for 'Samsung price drops', 'what Philips products got cheaper', 'any deals on boAt this week', 'Samsung TV price drops' (brand + keyword). Pass the brand name as written by the user; optional keyword narrows to a product type (e.g. 'tv', 'washing machine'). Each product's priceChange is the drop in INR (negative). Shown to the user as product cards.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60,
+            "description": "Brand name, e.g. 'Samsung', 'Philips', 'OnePlus'"
+          },
+          "keyword": {
+            "description": "Optional product type within the brand, e.g. 'tv', 'refrigerator', 'air fryer'",
+            "type": "string",
+            "maxLength": 60
+          },
+          "days": {
+            "description": "Look-back window in days (default 7)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "limit": {
+            "description": "Max products (default 15)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          }
+        },
+        "required": [
+          "brand"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "days": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "searchPageUrl": {
+            "type": "string",
+            "description": "The brand's price-drop page on CheapestInIndia"
+          }
+        },
+        "required": [
+          "brand",
+          "days",
+          "title",
+          "products",
+          "searchPageUrl"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    },
+    {
+      "name": "sale_events",
+      "title": "Sale events",
+      "description": "Live retailer sale events tracked by CheapestInIndia (e.g. Flipkart Big Billion Days, Amazon Great Indian Festival). Without slug: lists current sales. With slug: the products whose prices dropped during that sale.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "description": "Sale slug from a previous sale_events call",
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "page": {
+            "description": "Product page for a sale (default 1)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "sales": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "store": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "slug",
+                "title",
+                "store",
+                "url"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "sale": {
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "store": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "slug",
+              "title",
+              "store",
+              "url"
+            ],
+            "additionalProperties": false
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "sales",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    },
+    {
+      "name": "market_snapshot",
+      "title": "Price range & budget in India",
+      "description": "What a type of product costs in India right now, from CheapestInIndia's live listings across Indian stores: price range, median, budget / mid-range / premium price bands with their main brands and example products, and which brands and stores sell it. Use for 'how much does X cost in India', 'how much should I budget for X', 'what does a good X cost', 'price range of X', 'what should I pay for X' and 'which brands sell X in India' — prices in India change daily, so use this rather than general knowledge. Example products from each band are shown to the user as product cards. Computed from the top ~120 search results — a snapshot of current listings, not total market data.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200,
+            "description": "Product type, e.g. 'air purifier', '1.5 ton split ac', 'running shoes men'"
+          },
+          "category_ids": {
+            "description": "Restrict to category group ids (browse_categories)",
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{24}$"
+            }
+          },
+          "min_price": {
+            "description": "Ignore listings below this price (INR) — useful to drop accessories",
+            "type": "number",
+            "minimum": 0
+          },
+          "max_price": {
+            "description": "Ignore listings above this price (INR)",
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "sampleSize": {
+            "type": "number"
+          },
+          "priceSummary": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "p25": {
+                "type": "number"
+              },
+              "median": {
+                "type": "number"
+              },
+              "p75": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "min",
+              "p25",
+              "median",
+              "p75",
+              "max"
+            ],
+            "additionalProperties": false
+          },
+          "tiers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "enum": [
+                    "budget",
+                    "mid_range",
+                    "premium"
+                  ]
+                },
+                "minPrice": {
+                  "type": "number"
+                },
+                "maxPrice": {
+                  "type": "number"
+                },
+                "count": {
+                  "type": "number"
+                },
+                "topBrands": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "picks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "CheapestInIndia product id — pass through unchanged"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "brand": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": "number",
+                        "description": "Current price in INR"
+                      },
+                      "mrp": {
+                        "description": "Maximum retail price in INR, when known",
+                        "type": "number"
+                      },
+                      "currency": {
+                        "type": "string",
+                        "const": "INR"
+                      },
+                      "discountPercent": {
+                        "description": "Discount from MRP, %",
+                        "type": "number"
+                      },
+                      "store": {
+                        "type": "string",
+                        "description": "Retailer, e.g. amazon.in, flipkart.com"
+                      },
+                      "imageUrl": {
+                        "type": "string"
+                      },
+                      "productUrl": {
+                        "type": "string",
+                        "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                      },
+                      "productPageUrl": {
+                        "type": "string",
+                        "description": "CheapestInIndia price-history page — use for citations"
+                      },
+                      "outOfStock": {
+                        "type": "boolean"
+                      },
+                      "priceChange": {
+                        "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                        "type": "number"
+                      },
+                      "priceChangeAt": {
+                        "description": "When that price change happened (ISO 8601)",
+                        "type": "string"
+                      },
+                      "lowestPrice": {
+                        "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                        "type": "number"
+                      },
+                      "atLowestPrice": {
+                        "description": "True when the current price is the lowest ever recorded",
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "price",
+                      "currency",
+                      "store",
+                      "productUrl",
+                      "productPageUrl",
+                      "outOfStock"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "minPrice",
+                "maxPrice",
+                "count",
+                "topBrands",
+                "picks"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "brands": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "brand": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "number"
+                },
+                "medianPrice": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "brand",
+                "count",
+                "medianPrice"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "store": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "number"
+                },
+                "medianPrice": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "store",
+                "count",
+                "medianPrice"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "searchPageUrl": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "Heading for the cards"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Example products: budget, then mid-range, then premium"
+          }
+        },
+        "required": [
+          "query",
+          "sampleSize",
+          "priceSummary",
+          "tiers",
+          "brands",
+          "stores",
+          "searchPageUrl",
+          "title",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    },
+    {
+      "name": "compare_products",
+      "title": "Compare products",
+      "description": "Compare 2–4 CheapestInIndia products side by side on facts: current price, MRP and discount, store, retailer rating and review count, lowest price ever and in the last 30 days, how far today's price is above its low, and how often the price changes. Use ids from search_products. Highlights the cheapest, the best-rated and the one closest to its lowest price; it does not judge specs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 2,
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{24}$",
+              "description": "CheapestInIndia product id (from search_products, get_product or lookup_product_by_url)"
+            },
+            "description": "2–4 product ids"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "product": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "CheapestInIndia product id — pass through unchanged"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "brand": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "number",
+                      "description": "Current price in INR"
+                    },
+                    "mrp": {
+                      "description": "Maximum retail price in INR, when known",
+                      "type": "number"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "const": "INR"
+                    },
+                    "discountPercent": {
+                      "description": "Discount from MRP, %",
+                      "type": "number"
+                    },
+                    "store": {
+                      "type": "string",
+                      "description": "Retailer, e.g. amazon.in, flipkart.com"
+                    },
+                    "imageUrl": {
+                      "type": "string"
+                    },
+                    "productUrl": {
+                      "type": "string",
+                      "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                    },
+                    "productPageUrl": {
+                      "type": "string",
+                      "description": "CheapestInIndia price-history page — use for citations"
+                    },
+                    "outOfStock": {
+                      "type": "boolean"
+                    },
+                    "priceChange": {
+                      "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                      "type": "number"
+                    },
+                    "priceChangeAt": {
+                      "description": "When that price change happened (ISO 8601)",
+                      "type": "string"
+                    },
+                    "lowestPrice": {
+                      "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                      "type": "number"
+                    },
+                    "atLowestPrice": {
+                      "description": "True when the current price is the lowest ever recorded",
+                      "type": "boolean"
+                    },
+                    "rating": {
+                      "description": "Rating at the retailer (0–5)",
+                      "type": "number"
+                    },
+                    "reviewCount": {
+                      "description": "Number of reviews at the retailer",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "price",
+                    "currency",
+                    "store",
+                    "productUrl",
+                    "productPageUrl",
+                    "outOfStock"
+                  ],
+                  "additionalProperties": false
+                },
+                "lowestEver": {
+                  "type": "number"
+                },
+                "lowestLast30Days": {
+                  "type": "number"
+                },
+                "aboveLowestEverPercent": {
+                  "type": "number"
+                },
+                "priceChangesLast30Days": {
+                  "type": "number"
+                },
+                "verdict": {
+                  "type": "string",
+                  "enum": [
+                    "lowest_ever",
+                    "near_lowest",
+                    "lowest_in_90_days",
+                    "lowest_in_30_days",
+                    "above_recent_lows",
+                    "highest_ever",
+                    "not_enough_data"
+                  ]
+                },
+                "verdictText": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "product"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "cheapestId": {
+            "type": "string"
+          },
+          "bestRatedId": {
+            "type": "string"
+          },
+          "closestToLowId": {
+            "type": "string"
+          },
+          "missingIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "rows",
+          "missingIds"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "render_product_results",
+      "title": "Show product results",
+      "description": "Display a hand-picked set of products as interactive product cards in the chat (search, price-drop and sale results already show cards on their own). Pass `ids` — the product ids from another CheapestInIndia tool's results (each product line shows `id …`) — and the server loads the full, current product data. Pass search_query (the search behind these products) so the cards link to all results on CheapestInIndia. Do not invent products.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "description": "Short heading for the cards, e.g. 'Two cheapest Philips air fryers'",
+            "type": "string",
+            "maxLength": 120
+          },
+          "ids": {
+            "description": "Product ids to show, in display order",
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{24}$",
+              "description": "CheapestInIndia product id (from search_products, get_product or lookup_product_by_url)"
+            }
+          },
+          "products": {
+            "description": "Alternative to ids: products from another tool, passed through unchanged (reloaded by id)",
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ]
+            }
+          },
+          "search_query": {
+            "description": "The search these products came from, e.g. 'philips air fryer' — adds a 'see all results' link",
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "CheapestInIndia product id — pass through unchanged"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "brand": {
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "description": "Current price in INR"
+                },
+                "mrp": {
+                  "description": "Maximum retail price in INR, when known",
+                  "type": "number"
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "INR"
+                },
+                "discountPercent": {
+                  "description": "Discount from MRP, %",
+                  "type": "number"
+                },
+                "store": {
+                  "type": "string",
+                  "description": "Retailer, e.g. amazon.in, flipkart.com"
+                },
+                "imageUrl": {
+                  "type": "string"
+                },
+                "productUrl": {
+                  "type": "string",
+                  "description": "Attributed buy link (CheapestInIndia redirect to the retailer)"
+                },
+                "productPageUrl": {
+                  "type": "string",
+                  "description": "CheapestInIndia price-history page — use for citations"
+                },
+                "outOfStock": {
+                  "type": "boolean"
+                },
+                "priceChange": {
+                  "description": "Most recent price change in INR (negative = price dropped, positive = went up)",
+                  "type": "number"
+                },
+                "priceChangeAt": {
+                  "description": "When that price change happened (ISO 8601)",
+                  "type": "string"
+                },
+                "lowestPrice": {
+                  "description": "Lowest price ever recorded by CheapestInIndia, INR",
+                  "type": "number"
+                },
+                "atLowestPrice": {
+                  "description": "True when the current price is the lowest ever recorded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "price",
+                "currency",
+                "store",
+                "productUrl",
+                "productPageUrl",
+                "outOfStock"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "query": {
+            "type": "string"
+          },
+          "searchPageUrl": {
+            "description": "All results for search_query on CheapestInIndia",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "count",
+          "products"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "ui": {
+          "resourceUri": "ui://cheapestinindia/products/v6.html"
+        },
+        "openai/toolInvocation/invoking": "Rendering products…",
+        "openai/toolInvocation/invoked": "Products ready.",
+        "ui/resourceUri": "ui://cheapestinindia/products/v6.html"
+      }
+    }
+  ],
+  "version": "1.0.0"
+}

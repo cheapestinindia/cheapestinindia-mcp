@@ -1,0 +1,113 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cheapestinindia",
+  "version": "1.0.0",
+  "description": "India shopping search engine and price tracker: price history, price drops and price comparison.",
+  "author": {
+    "name": "CheapestInIndia",
+    "email": "support@cheapestinindia.com",
+    "url": "https://www.cheapestinindia.com"
+  },
+  "homepage": "https://www.cheapestinindia.com",
+  "license": "UNLICENSED",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "CheapestInIndia",
+        "shortDescription": "Price tracker & comparison",
+        "longDescription": "CheapestInIndia is a shopping search engine and price tracker for India. Search products, track price drops, check price history and price trends, and compare prices across online stores — right in the chat. It covers 50M+ products from 100+ Indian online stores, including Amazon, Flipkart, Myntra, Croma, Reliance Digital, Tata CLiQ, Ajio, Nykaa, Vijay Sales and JioMart, with 390M+ price changes recorded since 2024.\n\nShopping search — find phones, laptops, headphones, TVs, home appliances, fashion, beauty and more, with current prices in INR from several stores, shown as product cards. Filter by budget, store or category.\n\nPrice tracker and price drops — product cards show whether a price recently went up or down and when it is at its lowest recorded level. See the largest recent price drops overall or by category (for example mobile phones), and price drops during current store sales.\n\nPrice history and price trends — see the lowest and highest recorded price with dates, the 30-day low, how often the price changed and how today's price compares. Works as an Amazon price history and Flipkart price history checker: paste a product link to look it up.\n\nMarket price research — find out what a product type costs in India: price range, median price, budget, mid-range and premium tiers, and the brands and stores in each.\n\nPrice comparison — compare prices for the same product across stores, or put 2 to 4 shortlisted products side by side: price, store, discount from MRP, rating and how close each is to its lowest recorded price.\n\nEvery result links to the product's price-history page on CheapestInIndia and to the store's product page. Prices come from tracked listings and can change quickly, so check the store before buying. Price history and price trends describe past prices only; they are not forecasts. CheapestInIndia is a research tool: it does not sell products, place orders or take payments, and it needs no account or sign-in.",
+        "developerName": "CheapestInIndia",
+        "category": "Shopping",
+        "capabilities": [
+          "Shopping search engine for India",
+          "Price tracker: recent price ups and downs",
+          "Price drops by category",
+          "Brand price drops",
+          "Sale price tracker",
+          "Lowest recorded price",
+          "Price history",
+          "Price trends (past prices)",
+          "Amazon and Flipkart price history by link",
+          "Market price research and budget tiers",
+          "Compare prices across online stores",
+          "Product comparison"
+        ],
+        "websiteURL": "https://www.cheapestinindia.com",
+        "supportURL": "https://www.cheapestinindia.com/contact",
+        "privacyPolicyURL": "https://www.cheapestinindia.com/privacy-policy",
+        "termsOfServiceURL": "https://www.cheapestinindia.com/terms",
+        "brandColor": "#2563EB",
+        "brandColorDark": "#60A5FA",
+        "defaultPrompt": [
+          "Show me room heaters under ₹5,000 as cards",
+          "Which air conditioners dropped in price in the last 3 days?",
+          "Is ₹6,999 a good price for the JBL Flip 6 speaker right now?"
+        ],
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Browse a product type under a budget as cards",
+              "prompt": "Show me room heaters under ₹5,000 as cards",
+              "tools_triggered": "search_products",
+              "expected_behavior": "Shows 6 or more room heaters priced at or below ₹5,000 from at least 5 Indian stores as product cards (shown automatically with the search results) with image, price, store and recent price up/down markers (verified 10 Nov 2026: Sujata SRH18 ₹1,799 at Amazon.in, at its lowest recorded price; Threza A10 carbon heater ₹1,369 at Flipkart; USHA Sun 900W ₹2,699 at Croma; BPL heater fan ₹2,100 at Reliance Digital; Havells Inclino 1200W ₹2,719 at Vijay Sales)."
+            },
+            {
+              "description": "Recent price drops within a category",
+              "prompt": "Which air conditioners dropped in price in the last 3 days?",
+              "tools_triggered": "top_price_drops",
+              "expected_behavior": "Lists (category 'air conditioners', one call) the ACs with the largest price drops in the last 72 hours with current price, store and drop amount (verified 10 Nov 2026: Godrej 1.5 Ton 5 Star split inverter ₹30,790 on Flipkart, down ₹7,710; Daikin 1.5 Ton 5 Star ₹49,900, down ₹4,950; Voltas 1.5 Ton window AC ₹28,811, down ₹4,765; Blue Star 1.5 Ton 5 Star ₹45,900, down ₹4,147). Reports drops factually without predicting further changes."
+            },
+            {
+              "description": "Check whether a current price is good using price history",
+              "prompt": "Is ₹6,999 a good price for the JBL Flip 6 speaker right now?",
+              "tools_triggered": "search_products, get_price_history",
+              "expected_behavior": "Finds JBL Flip 6 listings with current INR prices from several Indian stores (verified 10 Nov 2026: Amazon.in ₹6,999, Croma ₹6,999, Reliance Digital ₹9,999, JioMart ₹9,999), then reads the price history of the matching listing and answers factually from it (Amazon.in ₹6,999 is within 0.3% of the lowest recorded ₹6,981 from 24 Sep 2025; highest recorded ₹9,999; 80 price changes since Apr 2025). Links to the CheapestInIndia price-history page. Makes no prediction about future prices."
+            },
+            {
+              "description": "Price research for a product type",
+              "prompt": "How much should I budget for an air fryer in India?",
+              "tools_triggered": "market_snapshot",
+              "expected_behavior": "Summarises current air fryer prices in India from sampled live listings: overall range, median and middle range, plus budget, mid-range and premium tiers with the brands in each (verified 10 Nov 2026: median ₹5,500, middle half ₹4,000–₹9,500; budget tier Wonderchef, Agaro, Kent, Prestige; premium tier Philips, Hafele, Shark Ninja). States that prices are current listings and can change."
+            },
+            {
+              "description": "Compare one brand's product across stores",
+              "prompt": "Compare prices for Prestige induction cooktops across Indian stores",
+              "tools_triggered": "search_products, compare_products, render_product_results",
+              "expected_behavior": "Finds Prestige induction cooktops listed by 8 Indian stores, compares 3–4 of them on price, discount from MRP, rating and distance from each listing's lowest recorded price, and shows them as product cards with View deal and History buttons (verified 10 Nov 2026: Prestige Aura 1350W ₹1,705 at Croma; PIC 20 WIZ ₹2,640 at Amazon.in, 4.1★, lowest recorded ₹2,202; PIC 16.0 ₹3,139 at Reliance Digital, at its lowest recorded price; PIC 3.1 V3 ₹4,250 at JioMart)."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Purchases are out of scope",
+              "prompt": "Buy the cheapest iPhone 16 for me and pay with my saved card.",
+              "expected_behavior": "Declines: the plugin only shows prices, price history and links to the store; it cannot place orders or take payments."
+            },
+            {
+              "description": "Price predictions are not offered",
+              "prompt": "Will the JBL Flip 6 get cheaper next week? Predict the price.",
+              "expected_behavior": "Does not forecast. May share the recorded price history (lowest, highest, recent changes) and states that past prices do not predict future prices."
+            },
+            {
+              "description": "Stores outside India are not covered",
+              "prompt": "Find me the price of a PS5 at Best Buy in the US.",
+              "expected_behavior": "Explains that it only covers products sold by Indian online stores, priced in INR, and cannot look up US stores such as Best Buy."
+            }
+          ]
+        },
+        "demo_recording_url": "https://www.youtube.com/watch?v=REPLACE_WITH_UNLISTED_DEMO",
+        "commerce": false,
+        "commerce_description": "This plugin does not sell products or process payments; it shows prices and price history and links to the store's product page."
+      },
+      "publication": {
+        "countries": [
+          "IN"
+        ],
+        "release_notes": "First release: product search, price tracking and price drops, sale-event price drops, price history, store-link lookup, market price research and price comparison for Indian online stores."
+      }
+    }
+  }
+}

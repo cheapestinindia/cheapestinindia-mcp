@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "cheapestinindia": {
+      "type": "streamable-http",
+      "url": "https://mcp.cheapestinindia.com/mcp"
+    }
+  }
+}
